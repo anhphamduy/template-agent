@@ -14,12 +14,12 @@ except Exception:
 # ---------------------------
 # UI & App Configuration
 # ---------------------------
-st.set_page_config(page_title="JSON Schema Extractor", layout="wide")
-st.title("🧪 Schema Extractor")
+st.set_page_config(page_title="Schema + Style Guide Extractor", layout="wide")
+st.title("🧪 Schema & Style Guide Extractor")
 
 st.caption(
-    "Paste a Markdown or Text template. The app will extract a JSON Schema where all fields are strings, "
-    "and display a table of fields with descriptions."
+    "Paste a Markdown/Text template and optionally include sample test cases. The app extracts: "
+    "(1) a flat JSON Schema (all string fields), (2) concise guidelines, and (3) a detailed multi-bullet style guide derived from explicit instructions and sample tests."
 )
 
 # Model configuration (kept simple, no UI controls)
@@ -42,13 +42,14 @@ SYSTEM_PROMPT = """
 You are an expert technical writer and data modeler.
 
 Task:
-- Read the user's pasted template (plain text or Markdown).
+- Read the user's pasted template (plain text or Markdown) AND any included sample test cases.
 - Output STRICT JSON ONLY (no code fences, no comments).
-- The output MUST have two top-level keys: "schema" and "guidelines".
+- The output MUST have three top-level keys: "schema", "guidelines", and "style_guide".
 - "schema" MUST be a JSON Schema for an object with FLAT properties.
 - All properties in the schema MUST have type "string". Do not use any other type. Do not nest objects or arrays.
 - Each property MUST include a concise human-friendly description.
 - "guidelines" MUST be a single string summarizing overall test case generation guidelines derived from the template.
+- "style_guide" MUST be a MARKDOWN STRING that captures the test case writing style. It MUST be detailed and derived from BOTH: (1) explicit instructions in the template, and (2) patterns observed in any sample test cases present. Focus on voice/tense, structure (e.g., Given/When/Then or Arrange-Act-Assert), naming conventions, assertion patterns, formatting (headings, bullets, numbering), step phrasing, and domain-specific terminology. Include a minimal pseudo-structure example as a small markdown section if applicable. If nothing is available, return an empty string.
 
 Return EXACTLY a JSON object conforming to this shape:
 {
@@ -61,13 +62,15 @@ Return EXACTLY a JSON object conforming to this shape:
     },
     "required": ["optional", "list", "of", "fields"]
   },
-  "guidelines": "concise overall guidelines text"
+  "guidelines": "concise overall guidelines text",
+  "style_guide": "markdown describing the style in detail with headings and bullets as needed"
 }
 
 Rules:
 - Properties must be flat (no nested objects), and every property's type must be exactly "string".
-- Keep descriptions and the guidelines concise and useful.
-- If there are no obvious fields, return an empty properties object and an empty required list; guidelines may be an empty string.
+- Keep descriptions and guidelines concise; make style_guide detailed but crisp.
+- Avoid using triple-backtick code fences; standard markdown (headings, lists, bold/italics) is encouraged.
+- If there are no obvious fields, return an empty properties object and an empty required list; guidelines and style_guide may be empty strings.
 - Output VALID JSON ONLY.
 """.strip()
 
@@ -190,18 +193,30 @@ def render_schema_table(schema: Dict[str, Any]) -> None:
 
 def sanitize_result_with_guidelines(raw_result: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(raw_result, dict):
-        return {"schema": sanitize_to_string_schema({}), "guidelines": ""}
+        return {"schema": sanitize_to_string_schema({}), "guidelines": "", "style_guide": ""}
     candidate_schema: Any = raw_result.get("schema", raw_result)
     sanitized_schema = sanitize_to_string_schema(candidate_schema if isinstance(candidate_schema, dict) else {})
     guidelines_raw = raw_result.get("guidelines", "")
     guidelines_text = str(guidelines_raw) if guidelines_raw is not None else ""
-    return {"schema": sanitized_schema, "guidelines": guidelines_text}
+    style_raw = raw_result.get("style_guide", "")
+    style_markdown = str(style_raw) if style_raw is not None else ""
+    return {"schema": sanitized_schema, "guidelines": guidelines_text, "style_guide": style_markdown}
 
 
 # ---------------------------
 # Main input area
 # ---------------------------
-pasted = st.text_area("Paste template content here", height=220, placeholder="# Example: Login test template\n...")
+pasted = st.text_area(
+    "Paste template and optional sample test cases here",
+    height=220,
+    placeholder=(
+        "# Example: Login test template\n"
+        "Instructions: Use Given/When/Then. Present tense.\n\n"
+        "# Sample tests (optional)\n"
+        "Test: Successful login\n"
+        "Given the user is on the login page...\n"
+    ),
+)
 
 raw_text = ""
 source = None
@@ -235,12 +250,15 @@ if run:
             combined = sanitize_result_with_guidelines(result)
             schema = combined["schema"]
             guidelines = combined["guidelines"]
+            style_guide = combined.get("style_guide", "")
 
             render_schema_table(schema)
             st.markdown("### 🧭 Guidelines")
             st.write(guidelines or "—")
+            st.markdown("### 🖋️ Style guide")
+            st.markdown(style_guide or "—")
 
-            with st.expander("Show Full JSON (schema + guidelines)"):
+            with st.expander("Show Full JSON (schema + guidelines + style)"):
                 st.json(combined, expanded=False)
 
         except Exception as e:
