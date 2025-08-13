@@ -45,6 +45,7 @@ Task:
 - Read the user's pasted template (plain text or Markdown) AND any included sample test cases.
 - Output STRICT JSON ONLY (no code fences, no comments).
 - The output MUST have three top-level keys: "schema", "guidelines", and "style_guide".
+- IMPORTANT: Use the SAME LANGUAGE as the user's provided content for ALL text fields (schema.title, property descriptions, guidelines, style_guide). Do NOT translate.
 - "schema" MUST be a JSON Schema for an object with FLAT properties.
 - All properties in the schema MUST have type "string". Do not use any other type. Do not nest objects or arrays.
 - Each property MUST include a concise human-friendly description.
@@ -72,6 +73,7 @@ Rules:
 - Avoid using triple-backtick code fences; standard markdown (headings, lists, bold/italics) is encouraged.
 - If there are no obvious fields, return an empty properties object and an empty required list; guidelines and style_guide may be empty strings.
 - Output VALID JSON ONLY.
+- Language policy: Always respond in the same language as the user's input content.
 """.strip()
 
 
