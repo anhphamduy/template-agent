@@ -52,7 +52,7 @@ Task:
 - "schema" MUST be a JSON Schema for an object with FLAT properties.
 - All properties in the schema MUST have type "string". Do not use any other type. Do not nest objects or arrays.
 - Each property MUST include a concise human-friendly description.
-- "guidelines" MUST be a single English string summarizing overall test case generation guidelines derived from the template.
+- "guidelines" MUST be a single English string summarizing overall test case generation guidelines derived from the template. If the template includes any matrices, decision tables, or parameter grids, include a dedicated part that: (1) lists the axes/fields, (2) enumerates allowed values or equivalence classes, (3) notes constraints and cross-field rules, and (4) states the coverage strategy (e.g., pairwise, boundary, full Cartesian). When quoting matrix/table names or values, preserve their original language.
 - "style_guide" MUST be a MARKDOWN STRING in English that captures the test case writing style. It MUST be detailed and derived from BOTH: (1) explicit instructions in the template, and (2) patterns observed in any sample test cases present. Focus on voice/tense, structure (e.g., Given/When/Then or Arrange-Act-Assert), naming conventions, assertion patterns, formatting (headings, bullets, numbering), step phrasing, and domain-specific terminology. Include a minimal pseudo-structure example as a small markdown section if applicable. End with a subsection titled "Examples" that enumerates all examples from the uploaded template verbatim (preserve original language). If nothing is available, return an empty string.
 
 Return EXACTLY a JSON object conforming to this shape:
@@ -180,12 +180,12 @@ def render_schema_table(schema: Dict[str, Any]) -> None:
     if not isinstance(properties, dict) or not properties:
         st.info("No fields detected in schema.")
         return
-    rows = []
+    rows: List[List[str]] = []
     for field_name, field_schema in properties.items():
         if not isinstance(field_schema, dict):
             field_schema = {}
         description = field_schema.get("description") or "—"
-        rows.append([field_name, "string", description])
+        rows.append([str(field_name), "string", str(description)])
     st.dataframe(
         {"Field": [r[0] for r in rows],
          "Type": [r[1] for r in rows],
