@@ -45,12 +45,15 @@ Task:
 - Read the user's pasted template (plain text or Markdown) AND any included sample test cases.
 - Output STRICT JSON ONLY (no code fences, no comments).
 - The output MUST have three top-level keys: "schema", "guidelines", and "style_guide".
-- IMPORTANT: Use the SAME LANGUAGE as the user's provided content for ALL text fields (schema.title, property descriptions, guidelines, style_guide). Do NOT translate.
+- Language & examples policy:
+  - Use English for all generated/inferred narrative text ("guidelines" and the explanatory prose in "style_guide").
+  - Preserve the original language for any text copied from the user's template (e.g., titles, rule snippets, step/expected texts, tags, domain terms). Do NOT translate copied content.
+  - In "style_guide", include a final subsection titled "Examples" that lists ALL examples provided in the uploaded template verbatim, preserving their original language. Do not drop, merge, or summarize examples; include them one-to-one.
 - "schema" MUST be a JSON Schema for an object with FLAT properties.
 - All properties in the schema MUST have type "string". Do not use any other type. Do not nest objects or arrays.
 - Each property MUST include a concise human-friendly description.
-- "guidelines" MUST be a single string summarizing overall test case generation guidelines derived from the template.
-- "style_guide" MUST be a MARKDOWN STRING that captures the test case writing style. It MUST be detailed and derived from BOTH: (1) explicit instructions in the template, and (2) patterns observed in any sample test cases present. Focus on voice/tense, structure (e.g., Given/When/Then or Arrange-Act-Assert), naming conventions, assertion patterns, formatting (headings, bullets, numbering), step phrasing, and domain-specific terminology. Include a minimal pseudo-structure example as a small markdown section if applicable. If nothing is available, return an empty string.
+- "guidelines" MUST be a single English string summarizing overall test case generation guidelines derived from the template.
+- "style_guide" MUST be a MARKDOWN STRING in English that captures the test case writing style. It MUST be detailed and derived from BOTH: (1) explicit instructions in the template, and (2) patterns observed in any sample test cases present. Focus on voice/tense, structure (e.g., Given/When/Then or Arrange-Act-Assert), naming conventions, assertion patterns, formatting (headings, bullets, numbering), step phrasing, and domain-specific terminology. Include a minimal pseudo-structure example as a small markdown section if applicable. End with a subsection titled "Examples" that enumerates all examples from the uploaded template verbatim (preserve original language). If nothing is available, return an empty string.
 
 Return EXACTLY a JSON object conforming to this shape:
 {
@@ -67,13 +70,12 @@ Return EXACTLY a JSON object conforming to this shape:
   "style_guide": "markdown describing the style in detail with headings and bullets as needed"
 }
 
-Rules:
+ Rules:
 - Properties must be flat (no nested objects), and every property's type must be exactly "string".
 - Keep descriptions and guidelines concise; make style_guide detailed but crisp.
 - Avoid using triple-backtick code fences; standard markdown (headings, lists, bold/italics) is encouraged.
 - If there are no obvious fields, return an empty properties object and an empty required list; guidelines and style_guide may be empty strings.
 - Output VALID JSON ONLY.
-- Language policy: Always respond in the same language as the user's input content.
 """.strip()
 
 
