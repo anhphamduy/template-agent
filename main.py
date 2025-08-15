@@ -111,7 +111,10 @@ def extract_json_with_openai(
                     "type": "text",
                     "text": "User template",
                 },
-                {"type": "input_image", "image_url": image_data_url},
+                {
+                    "type": "image_url",
+                    "image_url": {"url": image_data_url},
+                },
             ]
             if raw_text.strip():
                 user_content.insert(
