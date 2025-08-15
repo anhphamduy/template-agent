@@ -108,7 +108,7 @@ def extract_json_with_openai(
         if image_data_url:
             user_content = [
                 {
-                    "type": "input_text",
+                    "type": "text",
                     "text": "User template",
                 },
                 {"type": "input_image", "image_url": image_data_url},
@@ -117,7 +117,7 @@ def extract_json_with_openai(
                 user_content.insert(
                     1,
                     {
-                        "type": "input_text",
+                        "type": "text",
                         "text": build_user_prompt(raw_text),
                     },
                 )
@@ -272,8 +272,8 @@ if uploaded_image is not None:
 run = st.button("🔎 Extract")
 
 if run:
-    if not raw_text:
-        st.error("Please paste some template text.")
+    if not raw_text and not image_data_url:
+        st.error("Please paste some template text or upload an image.")
         st.stop()
 
     client = get_openai_client()
