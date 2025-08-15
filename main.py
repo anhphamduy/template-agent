@@ -1,4 +1,5 @@
 import os
+import base64
 import json
 from typing import Any, Dict, List, Optional
 
@@ -93,7 +94,8 @@ User Template (raw):
 def extract_json_with_openai(
     client: Any,
     model: str,
-    raw_text: str
+    raw_text: str,
+    image_data_url: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Calls OpenAI chat completions with JSON-only response formatting.
@@ -102,11 +104,31 @@ def extract_json_with_openai(
     # Prefer models that support JSON mode. If the chosen model doesn’t, the SDK will error.
     response = None
     try:
+        user_content: Any
+        if image_data_url:
+            user_content = [
+                {
+                    "type": "input_text",
+                    "text": "User template",
+                },
+                {"type": "input_image", "image_url": image_data_url},
+            ]
+            if raw_text.strip():
+                user_content.insert(
+                    1,
+                    {
+                        "type": "input_text",
+                        "text": build_user_prompt(raw_text),
+                    },
+                )
+        else:
+            user_content = build_user_prompt(raw_text)
+
         response = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": build_user_prompt(raw_text)},
+                {"role": "user", "content": user_content},
             ],
             response_format={"type": "json_object"},
         )
@@ -119,7 +141,7 @@ def extract_json_with_openai(
                 model=model,
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": build_user_prompt(raw_text)},
+                    {"role": "user", "content": user_content},
                 ],
             )
             content = response.choices[0].message.content.strip()
@@ -222,11 +244,27 @@ pasted = st.text_area(
     ),
 )
 
+uploaded_image = st.file_uploader(
+    "Or upload an image of the template (PNG/JPEG)",
+    type=["png", "jpg", "jpeg"],
+    accept_multiple_files=False,
+)
+
 raw_text = ""
 source = None
 if pasted.strip():
     raw_text = pasted.strip()
     source = "pasted_text"
+image_data_url: Optional[str] = None
+if uploaded_image is not None:
+    b = uploaded_image.read()
+    mime = "image/png"
+    if uploaded_image.type:
+        mime = uploaded_image.type
+    encoded = base64.b64encode(b).decode("utf-8")
+    image_data_url = f"data:{mime};base64,{encoded}"
+    if not source:
+        source = "uploaded_image"
 
 # ---------------------------
 # Run extraction
@@ -247,7 +285,8 @@ if run:
             result = extract_json_with_openai(
                 client=client,
                 model=MODEL_NAME,
-                raw_text=raw_text
+                raw_text=raw_text,
+                image_data_url=image_data_url
             )
 
             st.success("Extraction complete ✅")
